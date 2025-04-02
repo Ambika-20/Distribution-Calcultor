@@ -11,7 +11,7 @@ document.getElementById('solveButton').addEventListener('click', function() {
     const poissonRegex = /lambda\s*=\s*([\d.]+)/i;
     const uniformRegex = /a\s*=\s*([\d.]+)\s*,\s*b\s*=\s*([\d.]+)/i;
     const exponentialRegex = /rate\s*=\s*([\d.]+)/i;
-    const geometricRegex = /p\s*=\s*([\d.]+).*?(\d+)\w*\s*trial/i;
+    const geometricRegex = /p\s*=\s*([\d.]+)\s*,\s*k\s*=\s*(\d+)/i;
 
     if (question.includes('normal')) {
         distributionType = 'Normal Distribution';
@@ -19,11 +19,14 @@ document.getElementById('solveButton').addEventListener('click', function() {
         if (match) {
             const mean = parseFloat(match[1]);
             const stdDev = parseFloat(match[2]);
-            const valueMatch = question.match(/at\s*(\d+)/);
-            const value = valueMatch ? parseFloat(valueMatch[1]) : mean;
-            const z = (value - mean) / stdDev;
-
-            answer = `Z-score at value ${value}: <strong>${z.toFixed(2)}</strong>`;
+            if (isNaN(mean) || isNaN(stdDev) || stdDev <= 0) {
+                answer = 'Invalid input. Please provide a positive standard deviation.';
+            } else {
+                const valueMatch = question.match(/at\s*(\d+)/);
+                const value = valueMatch ? parseFloat(valueMatch[1]) : mean;
+                const z = (value - mean) / stdDev;
+                answer = `Z-score at value ${value}: <strong>${z.toFixed(2)}</strong>`;
+            }
         } else {
             answer = 'Please provide mean and standard deviation in the format: mean=X, std dev=Y.';
         }
@@ -34,8 +37,12 @@ document.getElementById('solveButton').addEventListener('click', function() {
         if (match) {
             const n = parseInt(match[1]);
             const p = parseFloat(match[2]);
-            const expectedSuccesses = n * p;
-            answer = `Expected successes: <strong>${expectedSuccesses}</strong>`;
+            if (isNaN(n) || isNaN(p) || n <= 0 || p < 0 || p > 1) {
+                answer = 'Invalid input. Ensure that n is a positive integer and 0 ≤ p ≤ 1.';
+            } else {
+                const expectedSuccesses = n * p;
+                answer = `Expected successes: <strong>${expectedSuccesses.toFixed(2)}</strong>`;
+            }
         } else {
             answer = 'Please provide n (number of trials) and p (probability of success) in the format: n=X, p=Y.';
         }
@@ -45,18 +52,20 @@ document.getElementById('solveButton').addEventListener('click', function() {
         const match = question.match(poissonRegex);
         if (match) {
             const lambda = parseFloat(match[1]);
+            if (isNaN(lambda) || lambda <= 0) {
+                answer = 'Invalid input. Lambda must be a positive number.';
+            } else {
+                const p0 = (Math.pow(lambda, 0) * Math.exp(-lambda)) / factorial(0);
+                const p1 = (Math.pow(lambda, 1) * Math.exp(-lambda)) / factorial(1);
+                const pAtLeast1 = 1 - p0;
 
-            // Poisson probability calculations
-            const p0 = (Math.pow(lambda, 0) * Math.exp(-lambda)) / factorial(0);
-            const p1 = (Math.pow(lambda, 1) * Math.exp(-lambda)) / factorial(1);
-            const pAtLeast1 = 1 - p0;
-
-            answer = `
-                <strong>Given λ = ${lambda}:</strong><br>
-                - Probability of **0** breakdowns: <strong>${p0.toFixed(4)}</strong><br>
-                - Probability of **1** breakdown: <strong>${p1.toFixed(4)}</strong><br>
-                - Probability of **at least 1** breakdown: <strong>${pAtLeast1.toFixed(4)}</strong>
-            `;
+                answer = `
+                    <strong>Given λ = ${lambda}:</strong><br>
+                    - Probability of **0** breakdowns: <strong>${p0.toFixed(4)}</strong><br>
+                    - Probability of **1** breakdown: <strong>${p1.toFixed(4)}</strong><br>
+                    - Probability of **at least 1** breakdown: <strong>${pAtLeast1.toFixed(4)}</strong>
+                `;
+            }
         } else {
             answer = 'Please provide lambda in the format: lambda=X.';
         }
@@ -67,8 +76,8 @@ document.getElementById('solveButton').addEventListener('click', function() {
         if (match) {
             const a = parseFloat(match[1]);
             const b = parseFloat(match[2]);
-            if (a >= b) {
-                answer = 'Invalid range. Ensure that a < b.';
+            if (isNaN(a) || isNaN(b) || a >= b) {
+                answer = 'Invalid range. Ensure that a < b and both are numbers.';
             } else {
                 const probability = 1 / (b - a);
                 answer = `Probability of selecting any number in [${a}, ${b}] is <strong>${probability.toFixed(4)}</strong>`;
@@ -82,8 +91,12 @@ document.getElementById('solveButton').addEventListener('click', function() {
         const match = question.match(exponentialRegex);
         if (match) {
             const rate = parseFloat(match[1]);
-            const expectedTime = 1 / rate;
-            answer = `Expected time until the next event: <strong>${expectedTime.toFixed(2)} units</strong>`;
+            if (isNaN(rate) || rate <= 0) {
+                answer = 'Invalid input. Rate must be a positive number.';
+            } else {
+                const expectedTime = 1 / rate;
+                answer = `Expected time until the next event: <strong>${expectedTime.toFixed(2)} units</strong>`;
+            }
         } else {
             answer = 'Please provide rate in the format: rate=X.';
         }
@@ -94,10 +107,14 @@ document.getElementById('solveButton').addEventListener('click', function() {
         if (match) {
             const p = parseFloat(match[1]);
             const k = parseInt(match[2]);
-            const geometricProbability = p * Math.pow(1 - p, k - 1);
-            answer = `Probability of first success on the ${k}th trial: <strong>${geometricProbability.toFixed(4)}</strong>`;
+            if (isNaN(p) || isNaN(k) || p <= 0 || p > 1 || k <= 0) {
+                answer = 'Invalid input. Ensure 0 < p ≤ 1 and k is a positive integer.';
+            } else {
+                const geometricProbability = p * Math.pow(1 - p, k - 1);
+                answer = `Probability of first success on the ${k}th trial: <strong>${geometricProbability.toFixed(4)}</strong>`;
+            }
         } else {
-            answer = 'Please provide p (probability of success) and trial number in the format: p=X, k=Y.';
+            answer = 'Please provide p (probability of success) and k (trial number) in the format: p=X, k=Y.';
         }
     } 
     else {
@@ -110,10 +127,5 @@ document.getElementById('solveButton').addEventListener('click', function() {
 
 // Helper function to calculate factorial
 function factorial(n) {
-    if (n === 0 || n === 1) return 1;
-    let fact = 1;
-    for (let i = 2; i <= n; i++) {
-        fact *= i;
-    }
-    return fact;
+    return n <= 1 ? 1 : n * factorial(n - 1);
 }
